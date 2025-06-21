@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cadastro.Carnes.Application\Cadastro.Carnes.Application.csproj" />
+    <ProjectReference Include="..\Cadastro.Carnes.Infra.Data\Cadastro.Carnes.Infra.Data.csproj" />
+    <ProjectReference Include="..\Cadastro.Carnes.Infra.IoC\Cadastro.Carnes.Infra.IoC.csproj" />
+  </ItemGroup>
+
+</Project>
