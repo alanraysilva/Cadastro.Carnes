@@ -46,6 +46,12 @@ namespace Cadastro.Carnes.Application.Services
             return _mapper.Map<CompradorDTO>(entity);
         }
 
+        public async Task<int> GetTotalAtivos()
+        {
+            var entity = await _CompradorRepository.GetAll();
+            return entity.Count();
+        }
+
         public async Task<RetornoPadraoDTO> Remove(int? id)
         {
             try

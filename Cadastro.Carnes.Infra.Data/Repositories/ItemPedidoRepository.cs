@@ -52,7 +52,7 @@ namespace Cadastro.Carnes.Infra.Data.Repositories
 
         public async Task<ItemPedido> ExistePorCarneIdAsync(int? carneId)
         {
-            var x = await _context.ItemPedido.Include(x => x.Carne).SingleOrDefaultAsync(p => p.CarneId == carneId);
+            var x = await _context.ItemPedido.SingleOrDefaultAsync(p => p.CarneId == carneId);
             return x!;
         }
 

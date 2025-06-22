@@ -19,7 +19,6 @@ namespace Cadastro.Carnes.Application.DTOs
         [DisplayName("OrigemId")]
         public int OrigemId { get; set; }
 
-        [JsonIgnore]
         [ValidateNever]
         public OrigemDTO? Origem { get; set; }
     }

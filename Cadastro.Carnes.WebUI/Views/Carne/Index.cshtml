@@ -1,0 +1,152 @@
+﻿@model Cadastro.Carnes.WebUI.ViewModel.CarneFormVm
+
+@{
+    ViewData["Title"] = "Carnes";
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-egg-fried me-2"></i>Gerenciamento de Carnes
+                </h5>
+                <small class="text-muted">Cadastre e gerencie os tipos de carne disponíveis</small>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalCriar()">
+                <i class="bi bi-plus-lg"></i> Nova Carne
+            </button>
+        </div>
+        <table id="tabelaCarnes" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descrição</th>
+                    <th>Origem</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var carne in Model.Carnes)
+                {
+                    <tr>
+                        <td>#@carne.Id</td>
+                        <td>@carne.Nome</td>
+                        <td>
+                            <span class="badge origem-@carne.Origem?.Nome?.ToLower()">@carne.Origem?.Nome</span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@carne.Id, '@carne.Nome', @carne.OrigemId)">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="excluirCarne(@carne.Id, '@carne.Nome')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalCarne" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="formCarne" class="modal-content">
+            <div class="modal-header">
+                <h5 id="tituloModalCarne" class="modal-title">Nova Carne</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="carneId" />
+                <div class="mb-3">
+                    <label for="descricao" class="form-label">Descrição da Carne *</label>
+                    <input type="text" id="descricao" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label for="origemId" class="form-label">Origem *</label>
+                    <select id="origemId" class="form-select" required>
+                        <option value="">Selecione...</option>
+                        @foreach (var origem in Model.Origem)
+                        {
+                            <option value="@origem.Id">@origem.Nome</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" id="btnSalvarCarne" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ConfirmarExclusao")
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#tabelaCarnes').DataTable({
+                paging: false,        // Remove paginação
+                searching: false,     // Remove caixa de busca
+                info: false,          // Remove "Mostrando X de Y"
+                lengthChange: false,  // Remove "Exibir X por página"
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
+            });
+        });
+
+        function abrirModalCriar() {
+            document.getElementById('carneId').value = '';
+            document.getElementById('descricao').value = '';
+            document.getElementById('origemId').value = '';
+
+            document.getElementById('tituloModalCarne').textContent = 'Nova Carne';
+            document.getElementById('btnSalvarCarne').textContent = 'Salvar';
+
+            new bootstrap.Modal(document.getElementById('modalCarne')).show();
+        }
+
+        function abrirModalEditar(id, nome, origemId) {
+            document.getElementById('carneId').value = id;
+            document.getElementById('descricao').value = nome;
+            document.getElementById('origemId').value = origemId;
+
+            document.getElementById('tituloModalCarne').textContent = 'Editar Carne';
+            document.getElementById('btnSalvarCarne').textContent = 'Atualizar';
+
+            new bootstrap.Modal(document.getElementById('modalCarne')).show();
+        }
+
+        // Submissão do form (create/update)
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('formCarne').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('carneId').value;
+                const dto = {
+                    id: id ? parseInt(id) : 0,
+                    nome: document.getElementById('descricao').value,
+                    origemId: parseInt(document.getElementById('origemId').value)
+                };
+                const url = id
+                    ? '@Url.Action("Edit", "Carne")/' + id
+                    : '@Url.Action("Create", "Carne")';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dto)
+                }).then(() => location.reload());
+            });
+        });
+        
+        function excluirCarne(id, nome) {
+            abrirModalExcluir(id, nome, function(idConfirmado) {
+                fetch(`/Carne/Delete/${idConfirmado}`, {
+                    method: 'POST'
+                }).then(() => location.reload());
+            });
+        }
+    </script>
+}
+

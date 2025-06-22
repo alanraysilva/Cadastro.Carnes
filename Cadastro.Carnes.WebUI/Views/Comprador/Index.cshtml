@@ -1,0 +1,170 @@
+﻿@model Cadastro.Carnes.WebUI.ViewModel.CompradorFormVm
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-people me-2"></i> Gerenciamento de Compradores
+                </h5>
+                <small class="text-muted">Cadastre e gerencie os compradores de carne</small>
+            </div>
+            <button class="btn btn-success" onclick="abrirModalCriar()">
+                <i class="bi bi-plus-lg"></i> Novo Comprador
+            </button>
+        </div>
+        <table id="tabelaCompradores" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Documento</th>
+                    <th>Localização</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Compradores == null || !Model.Compradores.Any())
+                {
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td class="text-center text-muted" colspan="1" style="width:100%;">Nenhum registro encontrado</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var c in Model.Compradores)
+                    {
+                        <tr>
+                            <td>#@c.Id</td>
+                            <td>@c.Nome</td>
+                            <td><span class="doc">@c.Documento</span></td>
+                            <td>@($"{c.Cidade?.Nome}, {c.Cidade?.Estado}")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@c.Id, '@c.Nome', '@c.Documento', @c.CidadeId)">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="excluirComprador(@c.Id, '@c.Nome')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal de Comprador -->
+<div class="modal fade" id="modalComprador" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="formComprador" class="modal-content">
+            <div class="modal-header">
+                <h5 id="tituloModalComprador" class="modal-title">Novo Comprador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="compradorId" />
+                <div class="mb-3">
+                    <label for="nome" class="form-label">Nome do Comprador *</label>
+                    <input type="text" id="nome" class="form-control" placeholder="Ex: João Silva ou Empresa Ltda" required />
+                </div>
+                <div class="mb-3">
+                    <label for="documento" class="form-label">CPF/CNPJ *</label>
+                    <input type="text" id="documento" class="form-control" required placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+                </div>
+                <div class="mb-3">
+                    <label for="cidadeId" class="form-label">Cidade *</label>
+                    <select id="cidadeId" class="form-select" required>
+                        <option value="">Selecione a cidade</option>
+                        @foreach (var cidade in Model.Cidades)
+                        {
+                            <option value="@cidade.Id">@cidade.Nome - @cidade.Estado</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" id="btnSalvarComprador" class="btn btn-success">Cadastrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ConfirmarExclusao")
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#tabelaCompradores').DataTable({
+                paging: false, info: false, searching: false, ordering: false,
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
+            });
+        });
+
+        // Formatar todos os documentos
+        $('.doc').each(function () {
+            $(this).text(formatarDocumento($(this).text()));
+        });
+
+        function abrirModalCriar() {
+            document.getElementById('compradorId').value = '';
+            document.getElementById('nome').value = '';
+            document.getElementById('documento').value = '';
+            document.getElementById('cidadeId').value = '';
+
+            document.getElementById('tituloModalComprador').textContent = 'Novo Comprador';
+            document.getElementById('btnSalvarComprador').textContent = 'Cadastrar';
+
+            new bootstrap.Modal(document.getElementById('modalComprador')).show();
+        }
+
+        function abrirModalEditar(id, nome, documento, cidadeId) {
+            document.getElementById('compradorId').value = id;
+            document.getElementById('nome').value = nome;
+            document.getElementById('documento').value = documento;
+            document.getElementById('cidadeId').value = cidadeId;
+
+            document.getElementById('tituloModalComprador').textContent = 'Editar Comprador';
+            document.getElementById('btnSalvarComprador').textContent = 'Atualizar';
+
+            new bootstrap.Modal(document.getElementById('modalComprador')).show();
+        }
+
+        // Submissão do form (create/update)
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('formComprador').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('compradorId').value;
+                const dto = {
+                    id: id ? parseInt(id) : 0,
+                    nome: document.getElementById('nome').value,
+                    documento: document.getElementById('documento').value,
+                    cidadeId: parseInt(document.getElementById('cidadeId').value)
+                };
+                const url = id
+                    ? '@Url.Action("Edit", "Comprador")/' + id
+                    : '@Url.Action("Create", "Comprador")';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dto)
+                }).then(() => location.reload());
+            });
+        });
+
+        // Modal de exclusão genérico
+        function excluirComprador(id, nome) {
+            abrirModalExcluir(id, nome, function(idConfirmado) {
+                fetch(`/Comprador/Delete/${idConfirmado}`, {
+                    method: 'POST'
+                }).then(() => location.reload());
+            });
+        }
+    </script>
+}

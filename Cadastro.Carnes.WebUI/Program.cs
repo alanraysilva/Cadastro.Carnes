@@ -1,7 +1,22 @@
+﻿using Cadastro.Carnes.WebUI.Configuration;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddHttpClient();
+
+// Carrega as configs da API
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
+
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
+
+// Registra o HttpClient com BaseAddress dinâmica
+builder.Services.AddHttpClient("API", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl!);
+});
 
 var app = builder.Build();
 
@@ -23,5 +38,6 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
 
 app.Run();

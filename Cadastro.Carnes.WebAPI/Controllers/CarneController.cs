@@ -1,6 +1,5 @@
 ﻿using Cadastro.Carnes.Application.DTOs;
 using Cadastro.Carnes.Application.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cadastro.Carnes.WebAPI.Controllers
@@ -46,6 +45,13 @@ namespace Cadastro.Carnes.WebAPI.Controllers
         {
             var resultado = await _carneService.Remove(id);
             return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        }
+
+        [HttpGet("total")]
+        public async Task<IActionResult> GetTotalCarnes()
+        {
+            var total = await _carneService.GetTotalCount();
+            return Ok(total);
         }
     }
 }

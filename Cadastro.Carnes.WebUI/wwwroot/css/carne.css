@@ -1,0 +1,19 @@
+﻿.badge.origem-bovina {
+    background-color: #dc3545; /* vermelho vivo */
+    color: #fff;
+}
+
+.badge.origem-suína {
+    background-color: #fd7e14; /* laranja escuro bem visível */
+    color: #fff;
+}
+
+.badge.origem-aves {
+    background-color: #ffc107; /* amarelo gema */
+    color: #212529;
+}
+
+.badge.origem-peixes {
+    background-color: #0dcaf0; /* azul piscina */
+    color: #fff;
+}

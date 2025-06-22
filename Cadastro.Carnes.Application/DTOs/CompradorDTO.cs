@@ -25,8 +25,6 @@ namespace Cadastro.Carnes.Application.DTOs
         [DisplayName("CidadeId")]
         public int CidadeId { get; set; }
 
-
-        [JsonIgnore]
         [ValidateNever]
         public CidadeDTO? Cidade { get; set; }
     }

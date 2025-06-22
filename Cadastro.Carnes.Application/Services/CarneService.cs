@@ -46,6 +46,12 @@ namespace Cadastro.Carnes.Application.Services
             return _mapper.Map<CarneDTO>(entity);
         }
 
+        public async Task<int> GetTotalCount()
+        {
+            var entity = await _carneRepository.GetAll();
+            return entity.Count();
+        }
+
         public async Task<RetornoPadraoDTO> Remove(int? id)
         {
             try

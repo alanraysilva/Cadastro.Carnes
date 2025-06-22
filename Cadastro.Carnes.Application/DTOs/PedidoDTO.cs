@@ -28,7 +28,6 @@ namespace Cadastro.Carnes.Application.DTOs
         [DisplayName("Total")]
         public decimal Total { get; set; }
 
-        [JsonIgnore]
         [ValidateNever]
         public CompradorDTO? Comprador { get; set; }
 

@@ -47,5 +47,12 @@ namespace Cadastro.Carnes.WebAPI.Controllers
             var resultado = await _pedidoService.Remove(id);
             return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
         }
+
+        [HttpGet("total")]
+        public async Task<IActionResult> GetTotalPedidos()
+        {
+            var total = await _pedidoService.GetTotalCount();
+            return Ok(total);
+        }
     }
 }

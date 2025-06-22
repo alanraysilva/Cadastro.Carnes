@@ -16,7 +16,7 @@ namespace Cadastro.Carnes.Infra.Data.EntitiesConfiguration
             builder.Property(p => p.Valor).HasPrecision(10, 2);
 
 
-            builder.HasOne(e => e.Pedido).WithMany().HasForeignKey(e => e.PedidoId);
+            builder.HasOne(e => e.Pedido).WithMany(p => p.Itens).HasForeignKey(e => e.PedidoId);
             builder.HasOne(e => e.Carne).WithMany().HasForeignKey(e => e.CarneId);
             builder.HasOne(e => e.Moeda).WithMany().HasForeignKey(e => e.MoedaId);
         }

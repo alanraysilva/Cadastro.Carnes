@@ -1,8 +1,82 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Visão Geral";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted">Total de Carnes</h6>
+                        <h4>@ViewBag.TotalCarnes</h4>
+                    </div>
+                    <i class="bi bi-egg-fried fs-3 text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted">Compradores Ativos</h6>
+                        <h4>@ViewBag.TotalCompradores</h4>
+                    </div>
+                    <i class="bi bi-people fs-3 text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted">Total de Pedidos</h6>
+                        <h4>@ViewBag.TotalPedidos</h4>
+                    </div>
+                    <i class="bi bi-cart fs-3 text-purple"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Bem-vindo ao Sistema</h5>
+                <p class="text-muted small">Use as abas acima para navegar entre as diferentes seções do sistema</p>
+                <div class="list-group">
+                    <a asp-controller="Carne" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center text-primary">
+                        <i class="bi bi-egg-fried me-2"></i> Gerenciar Carnes
+                    </a>
+                    <a asp-controller="Comprador" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center text-success">
+                        <i class="bi bi-people me-2"></i> Gerenciar Compradores
+                    </a>
+                    <a asp-controller="Pedido" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center text-purple">
+                        <i class="bi bi-cart me-2"></i> Gerenciar Pedidos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title">Funcionalidades</h5>
+                <p class="text-muted small">Principais recursos disponíveis no sistema</p>
+                <ul class="list-unstyled">
+                    <li><span class="text-primary fw-bold">•</span> Cadastro completo de carnes com diferentes origens</li>
+                    <li><span class="text-success fw-bold">•</span> Gestão de compradores com CPF/CNPJ</li>
+                    <li><span class="text-purple fw-bold">•</span> Sistema de pedidos com múltiplas carnes</li>
+                    <li><span class="text-warning fw-bold">•</span> Conversão automática de moedas</li>
+                    <li><span class="text-danger fw-bold">•</span> Validações e confirmações de segurança</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>

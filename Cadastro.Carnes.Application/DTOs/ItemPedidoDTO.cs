@@ -35,18 +35,12 @@ namespace Cadastro.Carnes.Application.DTOs
         [DisplayName("Valor")]
         public decimal Valor { get; set; }
 
-
-        [JsonIgnore]
         [ValidateNever]
         public CarneDTO? Carne { get; set; }
 
-
-        [JsonIgnore]
         [ValidateNever]
         public MoedaDTO? Moeda { get; set; }
 
-
-        [JsonIgnore]
         [ValidateNever]
         public PedidoDTO? Pedido { get; set; }
     }

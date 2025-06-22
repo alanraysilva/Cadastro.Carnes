@@ -1,32 +1,33 @@
 using Cadastro.Carnes.WebUI.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Cadastro.Carnes.WebUI.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(IHttpClientFactory httpClientFactory)
         {
-            _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var httpClient = _httpClientFactory.CreateClient("API");
+
+            var carnesResponse = await httpClient.GetStringAsync("api/carne/total");
+            var compradoresResponse = await httpClient.GetStringAsync("api/comprador/ativos");
+            var pedidosResponse = await httpClient.GetStringAsync("api/pedido/total");
+
+            ViewBag.TotalCarnes = JsonSerializer.Deserialize<int>(carnesResponse);
+            ViewBag.TotalCompradores = JsonSerializer.Deserialize<int>(compradoresResponse);
+            ViewBag.TotalPedidos = JsonSerializer.Deserialize<int>(pedidosResponse);
+
+            ViewData["Title"] = "Visão Geral";
             return View();
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }
