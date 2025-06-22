@@ -24,15 +24,24 @@ namespace Cadastro.Carnes.Infra.Data.Repositories
         {
             try
             {
-                var x = await _context.ItemPedido.Where(p => p.PedidoId == pedidoId).ToListAsync();
-                foreach (var item in x)
-                {
-                    await Delete(item);
-                }
+                // Busca todos os itens do pedido em uma tacada só
+                var itens = await _context.ItemPedido
+                    .Where(p => p.PedidoId == pedidoId)
+                    .ToListAsync();
+
+                // Se não achou nada, só retorna true (nada pra deletar)
+                if (!itens.Any())
+                    return true;
+
+                // Remove tudo de uma vez
+                _context.ItemPedido.RemoveRange(itens);
+                await _context.SaveChangesAsync();
+
                 return true;
             }
-            catch (Exception)
+            catch
             {
+                // Aqui poderia logar a exceção se quiser rastrear erro
                 return false;
             }
         }

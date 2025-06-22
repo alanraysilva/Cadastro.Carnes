@@ -1,0 +1,248 @@
+﻿@model Cadastro.Carnes.WebUI.ViewModel.PedidoFormVm
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-cart4 me-2"></i> Gerenciamento de Pedidos
+                </h5>
+                <small class="text-muted">Crie e gerencie pedidos com múltiplas carnes e compradores</small>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalCriar()">
+                <i class="bi bi-plus-lg"></i> Novo Pedido
+            </button>
+        </div>
+        <table id="tabelaPedidos" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Data</th>
+                    <th>Comprador</th>
+                    <th>Itens</th>
+                    <th>Valor Total</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Pedidos == null || !Model.Pedidos.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Nenhum registro encontrado</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var pedido in Model.Pedidos)
+                    {
+                        <tr>
+                            <td>#@pedido.Id</td>
+                            <td>@pedido.Data.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <strong>@pedido.Comprador?.Nome</strong><br />
+                                <small class="text-muted">@pedido.Comprador?.Documento</small>
+                            </td>
+                            <td>
+                                @foreach (var item in pedido.Itens)
+                                {
+                                    <div>
+                                        @item.Carne?.Nome - @item.Valor.ToString("C2") @if(item.Moeda != null){
+                                        <text> (@item.Moeda.Sigla)</text>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td>@pedido.Total.ToString("C2")</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@pedido.Id)">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="excluirPedido(@pedido.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Pedido -->
+<div class="modal fade" id="modalPedido" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="formPedido" class="modal-content">
+            <div class="modal-header">
+                <h5 id="tituloModalPedido" class="modal-title">Novo Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pedidoId" />
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="dataPedido" class="form-label">Data do Pedido *</label>
+                        <input type="date" id="dataPedido" class="form-control" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="compradorId" class="form-label">Comprador *</label>
+                        <select id="compradorId" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            @foreach (var comprador in Model.Compradores)
+                            {
+                                <option value="@comprador.Id">@comprador.Nome</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <!-- Itens do Pedido -->
+                <div id="itensPedido"></div>
+                <button type="button" class="btn btn-light btn-sm" onclick="adicionarItem()">+ Adicionar Item</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" id="btnSalvarPedido" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ConfirmarExclusao")
+
+@section Scripts {
+    <script>
+        // Dados do backend
+        const carnes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Carnes));
+        const moedas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Moedas));
+        const pedidos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Pedidos));
+
+        let itensPedido = [];
+        let editandoId = null;
+
+        // Abrir modal para criar novo
+        function abrirModalCriar() {
+            document.getElementById('pedidoId').value = '';
+            document.getElementById('dataPedido').value = '';
+            document.getElementById('compradorId').selectedIndex = 0;
+            itensPedido = [];
+            renderizarItensPedido();
+            document.getElementById('tituloModalPedido').textContent = 'Novo Pedido';
+            document.getElementById('btnSalvarPedido').textContent = 'Salvar';
+            editandoId = null;
+            new bootstrap.Modal(document.getElementById('modalPedido')).show();
+        }
+
+        // Abrir modal para editar
+        function abrirModalEditar(id) {
+            const pedido = pedidos.find(p => p.Id == id);
+            if (!pedido) return;
+            document.getElementById('pedidoId').value = pedido.Id;
+            document.getElementById('dataPedido').value = pedido.Data.substring(0,10);
+            document.getElementById('compradorId').value = pedido.CompradorId;
+            itensPedido = (pedido.Itens || []).map(item => ({
+                id: item.Id,
+                carneId: item.CarneId,
+                valor: item.Valor,
+                moedaId: item.MoedaId,
+                quantidade: item.Quantidade
+            }));
+            renderizarItensPedido();
+            document.getElementById('tituloModalPedido').textContent = 'Editar Pedido';
+            document.getElementById('btnSalvarPedido').textContent = 'Atualizar';
+            editandoId = id;
+            new bootstrap.Modal(document.getElementById('modalPedido')).show();
+        }
+
+        function adicionarItem() {
+            itensPedido.push({ id: 0, carneId: '', valor: '', moedaId: '', quantidade: 1 });
+            renderizarItensPedido();
+        }
+
+        function removerItem(idx) {
+            itensPedido.splice(idx, 1);
+            renderizarItensPedido();
+        }
+
+        function renderizarItensPedido() {
+            const div = document.getElementById('itensPedido');
+            div.innerHTML = '';
+            if (itensPedido.length === 0) {
+                div.innerHTML = '<div class="mb-3 text-muted">Nenhum item adicionado</div>';
+                return;
+            }
+            for (let i = 0; i < itensPedido.length; i++) {
+                let item = itensPedido[i];
+                let html = `
+                    <div class="row mb-2 align-items-end border rounded p-2" style="background:#fafafa;">
+                        <div class="col-md-4">
+                            <label class="form-label">Carne</label>
+                            <select class="form-select" onchange="itensPedido[${i}].carneId=this.value;">
+                                <option value="">Selecione...</option>
+                                ${carnes.map(c => `<option value="${c.Id}" ${item.carneId == c.Id ? 'selected' : ''}>${c.Nome}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Qtd</label>
+                            <input type="number" min="1" class="form-control" value="${item.quantidade || 1}"
+                                   oninput="itensPedido[${i}].quantidade=this.value;"/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Preço</label>
+                            <input type="number" step="0.01" class="form-control" value="${item.valor || ''}"
+                                   oninput="itensPedido[${i}].valor=this.value;"/>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Moeda</label>
+                            <select class="form-select" onchange="itensPedido[${i}].moedaId=this.value;">
+                                <option value="">Selecione...</option>
+                                ${moedas.map(m => `<option value="${m.Id}" ${item.moedaId == m.Id ? 'selected' : ''}>${m.Nome} (${m.Sigla})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <button type="button" class="btn btn-link text-danger" onclick="removerItem(${i})"><i class="bi bi-x"></i></button>
+                        </div>
+                    </div>`;
+                div.innerHTML += html;
+            }
+        }
+
+        // Salvar (Create ou Edit)
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('formPedido').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('pedidoId').value;
+                const dto = {
+                    Id: id ? parseInt(id) : 0,
+                    Data: document.getElementById('dataPedido').value,
+                    CompradorId: parseInt(document.getElementById('compradorId').value),
+                    Total: 0, // Calculado no backend
+                    Itens: itensPedido.map(x => ({
+                        Id: x.id ? parseInt(x.id) : 0,
+                        PedidoId: id ? parseInt(id) : 0,
+                        CarneId: parseInt(x.carneId),
+                        Quantidade: parseInt(x.quantidade) || 1,
+                        MoedaId: parseInt(x.moedaId),
+                        Valor: parseFloat(x.valor) || 0
+                    }))
+                };
+                const url = id
+                    ? '@Url.Action("Edit", "Pedido")/' + id
+                    : '@Url.Action("Create", "Pedido")';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dto)
+                }).then(() => location.reload());
+            });
+        });
+
+        // Modal genérico de exclusão
+        function excluirPedido(id) {
+            abrirModalExcluir(id, "Pedido #" + id, function(idConfirmado) {
+                fetch(`/Pedido/Delete/${idConfirmado}`, {
+                    method: 'POST'
+                }).then(() => location.reload());
+            });
+        }
+    </script>
+}

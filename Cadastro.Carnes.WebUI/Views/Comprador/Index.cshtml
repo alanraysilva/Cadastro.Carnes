@@ -105,22 +105,30 @@
                 paging: false, info: false, searching: false, ordering: false,
                 language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
             });
+            // Formatar todos os documentos
+            $('.doc').each(function () {
+                $(this).text(formatarDocumento($(this).text()));
+            });
         });
 
-        // Formatar todos os documentos
-        $('.doc').each(function () {
-            $(this).text(formatarDocumento($(this).text()));
-        });
+        function formatarDocumento(doc) {
+            doc = doc.replace(/\D/g, '');
+            if (doc.length <= 11) {
+                // CPF: 000.000.000-00
+                return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+            } else {
+                // CNPJ: 00.000.000/0000-00
+                return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+            }
+        }
 
         function abrirModalCriar() {
             document.getElementById('compradorId').value = '';
             document.getElementById('nome').value = '';
             document.getElementById('documento').value = '';
             document.getElementById('cidadeId').value = '';
-
             document.getElementById('tituloModalComprador').textContent = 'Novo Comprador';
             document.getElementById('btnSalvarComprador').textContent = 'Cadastrar';
-
             new bootstrap.Modal(document.getElementById('modalComprador')).show();
         }
 
@@ -129,10 +137,8 @@
             document.getElementById('nome').value = nome;
             document.getElementById('documento').value = documento;
             document.getElementById('cidadeId').value = cidadeId;
-
             document.getElementById('tituloModalComprador').textContent = 'Editar Comprador';
             document.getElementById('btnSalvarComprador').textContent = 'Atualizar';
-
             new bootstrap.Modal(document.getElementById('modalComprador')).show();
         }
 
@@ -142,10 +148,10 @@
                 e.preventDefault();
                 const id = document.getElementById('compradorId').value;
                 const dto = {
-                    id: id ? parseInt(id) : 0,
-                    nome: document.getElementById('nome').value,
-                    documento: document.getElementById('documento').value,
-                    cidadeId: parseInt(document.getElementById('cidadeId').value)
+                    Id: id ? parseInt(id) : 0,
+                    Nome: document.getElementById('nome').value,
+                    Documento: document.getElementById('documento').value,
+                    CidadeId: parseInt(document.getElementById('cidadeId').value)
                 };
                 const url = id
                     ? '@Url.Action("Edit", "Comprador")/' + id
@@ -158,7 +164,6 @@
             });
         });
 
-        // Modal de exclusão genérico
         function excluirComprador(id, nome) {
             abrirModalExcluir(id, nome, function(idConfirmado) {
                 fetch(`/Comprador/Delete/${idConfirmado}`, {

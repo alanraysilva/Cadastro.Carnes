@@ -36,14 +36,38 @@ namespace Cadastro.Carnes.Infra.Data.Repositories
 
         public async Task<IEnumerable<Pedido>> GetAll()
         {
-            return await _context.Pedido.Include(x => x.Comprador).ToListAsync();
+            var pedidos = await _context.Pedido
+                .Include(x => x.Comprador)
+                .Include(x => x.Itens)
+                    .ThenInclude(i => i.Carne)
+                .Include(x => x.Itens)
+                    .ThenInclude(i => i.Moeda)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Remover referência cruzada
+            foreach (var pedido in pedidos)
+            {
+                foreach (var item in pedido.Itens)
+                    item.Pedido = null;
+            }
+            return pedidos;
         }
 
         public async Task<Pedido> GetById(int? id)
         {
-            var x = await _context.Pedido.Include(x => x.Comprador).SingleOrDefaultAsync(p => p.Id == id);
+            var pedidos = await _context.Pedido
+                .Include(x => x.Comprador)
+                .Include(x => x.Itens)
+                    .ThenInclude(i => i.Carne)
+                .Include(x => x.Itens)
+                    .ThenInclude(i => i.Moeda).SingleOrDefaultAsync(p => p.Id == id);
 
-            return x ?? throw new KeyNotFoundException($"Registro não encontrado ID {id}");
+            // Remover referência cruzada
+            foreach (var item in pedidos!.Itens)
+                item.Pedido = null;
+
+            return pedidos ?? throw new KeyNotFoundException($"Registro não encontrado ID {id}");
         }
 
         public async Task<Pedido> Update(Pedido entity)

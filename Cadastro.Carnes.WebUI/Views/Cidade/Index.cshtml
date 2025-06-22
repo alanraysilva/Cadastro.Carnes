@@ -1,0 +1,152 @@
+﻿@model Cadastro.Carnes.WebUI.ViewModel.CidadeFormVm
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-geo-alt me-2"></i> Gerenciamento de Cidades
+                </h5>
+                <small class="text-muted">Cadastre e gerencie cidades</small>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalCriar()">
+                <i class="bi bi-plus-lg"></i> Nova Cidade
+            </button>
+        </div>
+        <table id="tabelaCidades" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cidade</th>
+                    <th>Estado</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Cidades == null || !Model.Cidades.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">Nenhum registro encontrado</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var c in Model.Cidades)
+                    {
+                        <tr>
+                            <td>#@c.Id</td>
+                            <td>@c.Nome</td>
+                            <td>@c.Estado</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@c.Id, '@c.Nome', '@c.Estado')">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="excluirCidade(@c.Id, '@c.Nome')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Cidade -->
+<div class="modal fade" id="modalCidade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="formCidade" class="modal-content">
+            <div class="modal-header">
+                <h5 id="tituloModalCidade" class="modal-title">Nova Cidade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cidadeId" />
+                <div class="mb-3">
+                    <label for="nome" class="form-label">Cidade *</label>
+                    <input type="text" id="nome" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label for="estado" class="form-label">Estado *</label>
+                    <select id="estado" class="form-select" required>
+                        <option value="">Selecione...</option>
+                        @foreach (var uf in new[] { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" })
+                        {
+                            <option value="@uf">@uf</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" id="btnSalvarCidade" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ConfirmarExclusao")
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#tabelaCidades').DataTable({
+                paging: false, info: false, searching: false, ordering: false,
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
+            });
+        });
+
+        function abrirModalCriar() {
+            document.getElementById('cidadeId').value = '';
+            document.getElementById('nome').value = '';
+            document.getElementById('estado').value = '';
+
+            document.getElementById('tituloModalCidade').textContent = 'Nova Cidade';
+            document.getElementById('btnSalvarCidade').textContent = 'Salvar';
+
+            new bootstrap.Modal(document.getElementById('modalCidade')).show();
+        }
+
+        function abrirModalEditar(id, nome, estado) {
+            document.getElementById('cidadeId').value = id;
+            document.getElementById('nome').value = nome;
+            document.getElementById('estado').value = estado;
+
+            document.getElementById('tituloModalCidade').textContent = 'Editar Cidade';
+            document.getElementById('btnSalvarCidade').textContent = 'Atualizar';
+
+            new bootstrap.Modal(document.getElementById('modalCidade')).show();
+        }
+
+        // Submissão do form (create/update)
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('formCidade').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('cidadeId').value;
+                const dto = {
+                    Id: id ? parseInt(id) : 0,
+                    Nome: document.getElementById('nome').value,
+                    Estado: document.getElementById('estado').value
+                };
+                const url = id
+                    ? '@Url.Action("Edit", "Cidade")/' + id
+                    : '@Url.Action("Create", "Cidade")';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dto)
+                }).then(() => location.reload());
+            });
+        });
+
+        // Modal de exclusão genérico
+        function excluirCidade(id, nome) {
+            abrirModalExcluir(id, nome, function (idConfirmado) {
+                fetch(`/Cidade/Delete/${idConfirmado}`, {
+                    method: 'POST'
+                }).then(() => location.reload());
+            });
+        }
+    </script>
+}
