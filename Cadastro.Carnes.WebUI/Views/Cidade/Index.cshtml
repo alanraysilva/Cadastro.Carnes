@@ -4,15 +4,18 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
+                <!-- Título e subtítulo da seção -->
                 <h5 class="fw-bold mb-1">
                     <i class="bi bi-geo-alt me-2"></i> Gerenciamento de Cidades
                 </h5>
                 <small class="text-muted">Cadastre e gerencie cidades</small>
             </div>
+            <!-- Botão para abrir modal de criação -->
             <button class="btn btn-primary" onclick="abrirModalCriar()">
                 <i class="bi bi-plus-lg"></i> Nova Cidade
             </button>
         </div>
+        <!-- Tabela que exibe as cidades cadastradas -->
         <table id="tabelaCidades" class="table table-hover">
             <thead>
                 <tr>
@@ -23,14 +26,17 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- Verifica se há cidades para exibir -->
                 @if (Model.Cidades == null || !Model.Cidades.Any())
                 {
+                    <!-- Exibe mensagem caso não haja registros -->
                     <tr>
                         <td colspan="4" class="text-center text-muted">Nenhum registro encontrado</td>
                     </tr>
                 }
                 else
                 {
+                    <!-- Loop para exibir cada cidade -->
                     foreach (var c in Model.Cidades)
                     {
                         <tr>
@@ -38,9 +44,11 @@
                             <td>@c.Nome</td>
                             <td>@c.Estado</td>
                             <td class="text-end">
+                                <!-- Botão para abrir modal de edição -->
                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@c.Id, '@c.Nome', '@c.Estado')">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
+                                <!-- Botão para excluir cidade -->
                                 <button class="btn btn-sm btn-outline-danger" onclick="excluirCidade(@c.Id, '@c.Nome')">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -53,24 +61,30 @@
     </div>
 </div>
 
-<!-- Modal Cidade -->
+<!-- Modal para criação/edição de cidade -->
 <div class="modal fade" id="modalCidade" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <form id="formCidade" class="modal-content">
             <div class="modal-header">
+                <!-- Título dinâmico do modal -->
                 <h5 id="tituloModalCidade" class="modal-title">Nova Cidade</h5>
+                <!-- Botão para fechar modal -->
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- Campo oculto para armazenar o ID da cidade -->
                 <input type="hidden" id="cidadeId" />
                 <div class="mb-3">
+                    <!-- Campo para nome da cidade -->
                     <label for="nome" class="form-label">Cidade *</label>
                     <input type="text" id="nome" class="form-control" required />
                 </div>
                 <div class="mb-3">
+                    <!-- Select para escolha do estado -->
                     <label for="estado" class="form-label">Estado *</label>
                     <select id="estado" class="form-select" required>
                         <option value="">Selecione...</option>
+                        <!-- Lista fixa de estados brasileiros -->
                         @foreach (var uf in new[] { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" })
                         {
                             <option value="@uf">@uf</option>
@@ -79,6 +93,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <!-- Botões para cancelar ou salvar -->
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" id="btnSalvarCidade" class="btn btn-primary">Salvar</button>
             </div>
@@ -88,13 +103,18 @@
 
 @section Scripts {
     <script>
+        // Inicializa a tabela com DataTable e configura idioma e opções básicas
         $(function () {
             $('#tabelaCidades').DataTable({
-                paging: false, info: false, searching: false, ordering: false,
+                paging: false,
+                info: false,
+                searching: false,
+                ordering: false,
                 language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
             });
         });
 
+        // Abre modal para criação de nova cidade com campos limpos
         function abrirModalCriar() {
             document.getElementById('cidadeId').value = '';
             document.getElementById('nome').value = '';
@@ -106,6 +126,7 @@
             new bootstrap.Modal(document.getElementById('modalCidade')).show();
         }
 
+        // Abre modal para edição da cidade preenchendo os campos existentes
         function abrirModalEditar(id, nome, estado) {
             document.getElementById('cidadeId').value = id;
             document.getElementById('nome').value = nome;
@@ -117,7 +138,7 @@
             new bootstrap.Modal(document.getElementById('modalCidade')).show();
         }
 
-        // Submissão do form (create/update)
+        // Intercepta submissão do formulário para enviar via fetch API
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formCidade').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -156,7 +177,7 @@
             });
         });
 
-        // Modal de exclusão genérico com SweetAlert2
+        // Função para confirmar exclusão da cidade com diálogo SweetAlert2
         function excluirCidade(id, nome) {
             Swal.fire({
                 title: `Excluir cidade`,

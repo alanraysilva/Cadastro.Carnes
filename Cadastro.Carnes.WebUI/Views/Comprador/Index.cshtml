@@ -4,15 +4,18 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
+                <!-- Título da seção e subtítulo explicativo -->
                 <h5 class="fw-bold mb-1">
                     <i class="bi bi-people me-2"></i> Gerenciamento de Compradores
                 </h5>
                 <small class="text-muted">Cadastre e gerencie os compradores de carne</small>
             </div>
+            <!-- Botão para abrir modal de criação de novo comprador -->
             <button class="btn btn-success" onclick="abrirModalCriar()">
                 <i class="bi bi-plus-lg"></i> Novo Comprador
             </button>
         </div>
+        <!-- Tabela para exibir a lista de compradores -->
         <table id="tabelaCompradores" class="table table-hover">
             <thead>
                 <tr>
@@ -24,8 +27,10 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- Verifica se há compradores cadastrados -->
                 @if (Model.Compradores == null || !Model.Compradores.Any())
                 {
+                    <!-- Mensagem exibida quando não há registros -->
                     <tr>
                         <td></td>
                         <td></td>
@@ -36,6 +41,7 @@
                 }
                 else
                 {
+                    <!-- Loop para mostrar cada comprador -->
                     foreach (var c in Model.Compradores)
                     {
                         <tr>
@@ -44,9 +50,11 @@
                             <td><span class="doc">@c.Documento</span></td>
                             <td>@($"{c.Cidade?.Nome}, {c.Cidade?.Estado}")</td>
                             <td class="text-end">
+                                <!-- Botão para editar comprador, abre modal preenchido -->
                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@c.Id, '@c.Nome', '@c.Documento', @c.CidadeId)">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
+                                <!-- Botão para excluir comprador com confirmação -->
                                 <button class="btn btn-sm btn-outline-danger" onclick="excluirComprador(@c.Id, '@c.Nome')">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -59,28 +67,35 @@
     </div>
 </div>
 
-<!-- Modal de Comprador -->
+<!-- Modal para cadastro e edição de comprador -->
 <div class="modal fade" id="modalComprador" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <form id="formComprador" class="modal-content">
             <div class="modal-header">
+                <!-- Título do modal alterado dinamicamente -->
                 <h5 id="tituloModalComprador" class="modal-title">Novo Comprador</h5>
+                <!-- Botão para fechar modal -->
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
+                <!-- Campo oculto para armazenar o ID do comprador -->
                 <input type="hidden" id="compradorId" />
                 <div class="mb-3">
+                    <!-- Campo para nome do comprador -->
                     <label for="nome" class="form-label">Nome do Comprador *</label>
                     <input type="text" id="nome" class="form-control" placeholder="Ex: João Silva ou Empresa Ltda" required />
                 </div>
                 <div class="mb-3">
+                    <!-- Campo para CPF/CNPJ do comprador -->
                     <label for="documento" class="form-label">CPF/CNPJ *</label>
                     <input type="text" id="documento" class="form-control" required placeholder="000.000.000-00 ou 00.000.000/0000-00" />
                 </div>
                 <div class="mb-3">
+                    <!-- Select para escolher a cidade -->
                     <label for="cidadeId" class="form-label">Cidade *</label>
                     <select id="cidadeId" class="form-select" required>
                         <option value="">Selecione a cidade</option>
+                        <!-- Loop para popular as cidades disponíveis -->
                         @foreach (var cidade in Model.Cidades)
                         {
                             <option value="@cidade.Id">@cidade.Nome - @cidade.Estado</option>
@@ -89,6 +104,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <!-- Botões para cancelar ou salvar -->
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" id="btnSalvarComprador" class="btn btn-success">Cadastrar</button>
             </div>
@@ -98,17 +114,22 @@
 
 @section Scripts {
     <script>
+        // Configuração inicial da tabela de compradores com DataTables e formatação de documentos
         $(function () {
             $('#tabelaCompradores').DataTable({
-                paging: false, info: false, searching: false, ordering: false,
+                paging: false,
+                info: false,
+                searching: false,
+                ordering: false,
                 language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
             });
-            // Formatar todos os documentos
+            // Aplica formatação para CPF/CNPJ nos documentos exibidos
             $('.doc').each(function () {
                 $(this).text(formatarDocumento($(this).text()));
             });
         });
 
+        // Função para formatar CPF ou CNPJ conforme quantidade de dígitos
         function formatarDocumento(doc) {
             doc = doc.replace(/\D/g, '');
             if (doc.length <= 11) {
@@ -118,6 +139,7 @@
             }
         }
 
+        // Abre modal para criação de comprador com campos limpos
         function abrirModalCriar() {
             document.getElementById('compradorId').value = '';
             document.getElementById('nome').value = '';
@@ -128,6 +150,7 @@
             new bootstrap.Modal(document.getElementById('modalComprador')).show();
         }
 
+        // Abre modal para edição, preenchendo os dados do comprador selecionado
         function abrirModalEditar(id, nome, documento, cidadeId) {
             document.getElementById('compradorId').value = id;
             document.getElementById('nome').value = nome;
@@ -138,7 +161,7 @@
             new bootstrap.Modal(document.getElementById('modalComprador')).show();
         }
 
-        // Submissão do form (create/update) COM SweetAlert2
+        // Manipula a submissão do formulário via fetch com feedback usando SweetAlert2
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formComprador').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -178,7 +201,7 @@
             });
         });
 
-        // Exclusão com confirmação e feedback
+        // Função para excluir comprador com confirmação e feedback visual
         function excluirComprador(id, nome) {
             Swal.fire({
                 title: `Excluir comprador`,

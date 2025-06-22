@@ -1,6 +1,7 @@
 ﻿@model Cadastro.Carnes.WebUI.ViewModel.CarneFormVm
 
 @{
+    // Define o título da página
     ViewData["Title"] = "Carnes";
 }
 
@@ -8,15 +9,18 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
+                <!-- Título principal e descrição -->
                 <h5 class="fw-bold mb-1">
                     <i class="bi bi-egg-fried me-2"></i>Gerenciamento de Carnes
                 </h5>
                 <small class="text-muted">Cadastre e gerencie os tipos de carne disponíveis</small>
             </div>
+            <!-- Botão para abrir modal de criação -->
             <button class="btn btn-primary" onclick="abrirModalCriar()">
                 <i class="bi bi-plus-lg"></i> Nova Carne
             </button>
         </div>
+        <!-- Tabela que exibe as carnes cadastradas -->
         <table id="tabelaCarnes" class="table table-hover">
             <thead>
                 <tr>
@@ -27,18 +31,22 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- Loop para exibir cada carne -->
                 @foreach (var carne in Model.Carnes)
                 {
                     <tr>
                         <td>#@carne.Id</td>
                         <td>@carne.Nome</td>
                         <td>
+                            <!-- Badge que exibe a origem da carne -->
                             <span class="badge origem-@carne.Origem?.Nome?.ToLower()">@carne.Origem?.Nome</span>
                         </td>
                         <td class="text-end">
+                            <!-- Botão para editar carne -->
                             <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@carne.Id, '@carne.Nome', @carne.OrigemId)">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
+                            <!-- Botão para excluir carne -->
                             <button class="btn btn-sm btn-outline-danger" onclick="excluirCarne(@carne.Id, '@carne.Nome')">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -50,21 +58,26 @@
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal para criação/edição da carne -->
 <div class="modal fade" id="modalCarne" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <form id="formCarne" class="modal-content">
             <div class="modal-header">
+                <!-- Título dinâmico do modal -->
                 <h5 id="tituloModalCarne" class="modal-title">Nova Carne</h5>
+                <!-- Botão para fechar o modal -->
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
+                <!-- Campo oculto para armazenar o ID da carne -->
                 <input type="hidden" id="carneId" />
                 <div class="mb-3">
+                    <!-- Campo para descrição da carne -->
                     <label for="descricao" class="form-label">Descrição da Carne *</label>
                     <input type="text" id="descricao" class="form-control" required />
                 </div>
                 <div class="mb-3">
+                    <!-- Select para escolher a origem da carne -->
                     <label for="origemId" class="form-label">Origem *</label>
                     <select id="origemId" class="form-select" required>
                         <option value="">Selecione...</option>
@@ -76,6 +89,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <!-- Botões de cancelar e salvar no modal -->
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" id="btnSalvarCarne" class="btn btn-primary">Salvar</button>
             </div>
@@ -85,16 +99,18 @@
 
 @section Scripts {
     <script>
+        // Inicializa o DataTable na tabela de carnes com configurações específicas
         $(function () {
             $('#tabelaCarnes').DataTable({
-                paging: false,        // Remove paginação
-                searching: false,     // Remove caixa de busca
-                info: false,          // Remove "Mostrando X de Y"
-                lengthChange: false,  // Remove "Exibir X por página"
+                paging: false,        // Desativa paginação
+                searching: false,     // Desativa campo de busca
+                info: false,          // Desativa informação de quantidade exibida
+                lengthChange: false,  // Desativa opção de alterar quantidade por página
                 language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' }
             });
         });
 
+        // Função para abrir o modal no modo de criação
         function abrirModalCriar() {
             document.getElementById('carneId').value = '';
             document.getElementById('descricao').value = '';
@@ -106,6 +122,7 @@
             new bootstrap.Modal(document.getElementById('modalCarne')).show();
         }
 
+        // Função para abrir o modal no modo de edição, preenchendo os campos
         function abrirModalEditar(id, nome, origemId) {
             document.getElementById('carneId').value = id;
             document.getElementById('descricao').value = nome;
@@ -117,7 +134,7 @@
             new bootstrap.Modal(document.getElementById('modalCarne')).show();
         }
 
-        // Submissão do form (create/update)
+        // Evento que intercepta o submit do formulário para tratar via fetch API
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formCarne').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -147,7 +164,7 @@
                         if (data.success) location.reload();
                     });
                 })
-                .catch(err => {
+                .catch(() => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Erro',
@@ -157,6 +174,7 @@
             });
         });
 
+        // Função para confirmar e executar a exclusão de uma carne
         function excluirCarne(id, nome) {
             Swal.fire({
                 title: `Excluir Carne`,
@@ -168,16 +186,16 @@
              }).then((result) => {
                 if (result.isConfirmed) {
                     fetch(`/Carne/Delete/${id}`, {
-                    method: 'POST'
+                        method: 'POST'
                     })
                     .then(response => response.json())
                     .then(data => {
-                    Swal.fire({
-                        icon: data.success ? 'success' : 'error',
-                        title: data.success ? 'Sucesso' : 'Erro',
-                        text: data.message
-                    }).then(() => {
-                        if (data.success) location.reload();
+                        Swal.fire({
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Sucesso' : 'Erro',
+                            text: data.message
+                        }).then(() => {
+                            if (data.success) location.reload();
                         });
                     })
                     .catch(() => {
@@ -186,10 +204,9 @@
                             title: 'Erro',
                             text: 'Falha ao excluir cidade. Tente novamente.'
                         });
-                     });
+                    });
                 }
              });
         }
     </script>
 }
-

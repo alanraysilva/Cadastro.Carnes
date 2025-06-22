@@ -2,6 +2,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
+        <!-- Cabeçalho da seção com título e botão para criar novo pedido -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h5 class="fw-bold mb-1">
@@ -13,6 +14,8 @@
                 <i class="bi bi-plus-lg"></i> Novo Pedido
             </button>
         </div>
+
+        <!-- Tabela que exibe os pedidos cadastrados -->
         <table id="tabelaPedidos" class="table table-hover">
             <thead>
                 <tr>
@@ -25,6 +28,7 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- Caso não haja pedidos, exibe mensagem de nenhum registro encontrado -->
                 @if (Model.Pedidos == null || !Model.Pedidos.Any())
                 {
                     <tr>
@@ -33,6 +37,7 @@
                 }
                 else
                 {
+                    <!-- Lista cada pedido com seus detalhes -->
                     foreach (var pedido in Model.Pedidos)
                     {
                         <tr>
@@ -43,6 +48,7 @@
                                 <small class="text-muted">@pedido.Comprador?.Documento</small>
                             </td>
                             <td>
+                                <!-- Exibe os itens do pedido com nome da carne, valor e sigla da moeda -->
                                 @foreach (var item in pedido.Itens)
                                 {
                                     <div>
@@ -54,6 +60,7 @@
                         </td>
                         <td>@pedido.Total.ToString("C2")</td>
                         <td class="text-end">
+                            <!-- Botões para editar e excluir o pedido -->
                             <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(@pedido.Id)">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
@@ -69,14 +76,16 @@
     </div>
 </div>
 
-<!-- Modal Pedido -->
+<!-- Modal para criação e edição de pedidos -->
 <div class="modal fade" id="modalPedido" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <form id="formPedido" class="modal-content">
+            <!-- Cabeçalho do modal com título e botão para fechar -->
             <div class="modal-header">
                 <h5 id="tituloModalPedido" class="modal-title">Novo Pedido</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <!-- Corpo do modal com campos para data, comprador e itens do pedido -->
             <div class="modal-body">
                 <input type="hidden" id="pedidoId" />
                 <div class="row mb-3">
@@ -95,10 +104,12 @@
                         </select>
                     </div>
                 </div>
-                <!-- Itens do Pedido -->
+                <!-- Área onde os itens do pedido serão renderizados dinamicamente -->
                 <div id="itensPedido"></div>
+                <!-- Botão para adicionar novos itens ao pedido -->
                 <button type="button" class="btn btn-light btn-sm" onclick="adicionarItem()">+ Adicionar Item</button>
             </div>
+            <!-- Rodapé do modal com botões para cancelar e salvar -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" id="btnSalvarPedido" class="btn btn-primary">Salvar</button>
@@ -106,17 +117,19 @@
         </form>
     </div>
 </div>
+
 @section Scripts {
     <script>
-        // Dados do backend
+        // Dados de carnes, moedas e pedidos para uso no JavaScript
         const carnes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Carnes));
         const moedas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Moedas));
         const pedidos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Pedidos));
 
+        // Variáveis para controlar itens do pedido e o ID do pedido em edição
         let itensPedido = [];
         let editandoId = null;
 
-        // --- Função para buscar cotação da moeda na AwesomeAPI ---
+        // Função para buscar cotação da moeda em relação ao BRL na API externa
         async function buscarCotacaoParaBRL(moeda) {
             if (moeda === 'BRL') return 1;
             try {
@@ -133,9 +146,9 @@
             return null;
         }
 
-        // --- Carregar e converter cotações antes de inicializar DataTable ---
+        // Ao carregar a página, converte os valores das moedas e inicializa a tabela
         $(document).ready(async function () {
-            // Mostra loading do SweetAlert2
+            // Exibe loading enquanto busca cotações
             Swal.fire({
                 title: 'Convertendo valores...',
                 text: 'Buscando cotações em tempo real',
@@ -144,26 +157,28 @@
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            // Monta map de cotações (BRL = 1)
+            // Mapa para armazenar as cotações, inicia com BRL = 1
             const cotacoes = { 'BRL': 1 };
             const moedasDiferentes = new Set();
+
+            // Identifica moedas diferentes de BRL nos pedidos para buscar cotação
             @foreach (var pedido in Model.Pedidos ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.PedidoDTO>())
             {
-                    foreach (var item in pedido.Itens ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.ItemPedidoDTO>())
-                    {
-                            if (item.Moeda != null && item.Moeda.Sigla != "BRL")
-                            {
-                                    <text>moedasDiferentes.add("@item.Moeda.Sigla");</text>
-                            }
-                    }
+                        foreach (var item in pedido.Itens ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.ItemPedidoDTO>())
+                        {
+                                    if (item.Moeda != null && item.Moeda.Sigla != "BRL")
+                                    {
+                                                <text>moedasDiferentes.add("@item.Moeda.Sigla");</text>
+                                    }
+                        }
             }
 
-            // Busca cotações em paralelo
+            // Busca as cotações em paralelo para todas moedas diferentes
             await Promise.all(Array.from(moedasDiferentes).map(async sigla => {
                 cotacoes[sigla] = await buscarCotacaoParaBRL(sigla);
             }));
 
-            // Altera HTML da tabela antes do DataTable
+            // Atualiza a coluna de itens da tabela com valores convertidos para BRL
             $('#tabelaPedidos tbody tr').each(function () {
                 let $row = $(this);
                 let colItens = $row.find('td').eq(3);
@@ -172,7 +187,7 @@
                 let itensHtml = colItens.html();
                 if (!itensHtml) return;
 
-                // Regex para extrair Nome - Valor e moeda
+                // Expressão regular para capturar Nome, Valor e Moeda dos itens
                 let regex = /([\w\s]+)\s*-\s*R\$?\s*([\d.,]+)(?:\s+\((\w+)\))?/gi;
                 let novoHtml = itensHtml.replace(regex, function (match, nome, valor, moeda) {
                     valor = valor.replace(/\./g, '').replace(',', '.');
@@ -187,7 +202,7 @@
                 });
                 colItens.html(novoHtml);
 
-                // Ajusta o total (soma dos convertidos desta linha)
+                // Calcula e exibe o total convertido em BRL
                 let matches = [...novoHtml.matchAll(/Convertido\sR\$[\s]?([\d.,]+)/g)];
                 if (matches.length > 0) {
                     let totalConvertido = matches.reduce((acc, curr) => acc + parseFloat(curr[1].replace(/\./g, '').replace(',', '.')), 0);
@@ -198,7 +213,7 @@
 
             Swal.close();
 
-            // --- Inicializa o DataTable UMA SÓ VEZ ---
+            // Inicializa o DataTable com opções de paginação e busca
             $('#tabelaPedidos').DataTable({
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
@@ -212,7 +227,7 @@
             });
         });
 
-        // --- Funções de modal e form continuam igual ---
+        // Abre modal para criar novo pedido, reseta os campos e lista de itens
         function abrirModalCriar() {
             document.getElementById('pedidoId').value = '';
             document.getElementById('dataPedido').value = '';
@@ -225,6 +240,7 @@
             new bootstrap.Modal(document.getElementById('modalPedido')).show();
         }
 
+        // Abre modal para editar pedido, preenche campos com dados do pedido selecionado
         function abrirModalEditar(id) {
             const pedido = pedidos.find(p => p.Id == id);
             if (!pedido) return;
@@ -245,16 +261,19 @@
             new bootstrap.Modal(document.getElementById('modalPedido')).show();
         }
 
+        // Adiciona um novo item vazio ao array de itens e atualiza a renderização
         function adicionarItem() {
             itensPedido.push({ id: 0, carneId: '', valor: '', moedaId: '', quantidade: 1 });
             renderizarItensPedido();
         }
 
+        // Remove um item do array de itens baseado no índice e atualiza a renderização
         function removerItem(idx) {
             itensPedido.splice(idx, 1);
             renderizarItensPedido();
         }
 
+        // Renderiza os itens do pedido na tela no modal
         function renderizarItensPedido() {
             const div = document.getElementById('itensPedido');
             div.innerHTML = '';
@@ -298,7 +317,7 @@
             }
         }
 
-        // Submissão do form (Create/Edit) COM SweetAlert2
+        // Submissão do formulário de criação ou edição de pedido usando SweetAlert2 para feedback
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formPedido').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -345,7 +364,7 @@
             });
         });
 
-        // Exclusão com SweetAlert2
+        // Função para exclusão de pedido com confirmação e feedback usando SweetAlert2
         function excluirPedido(id) {
             Swal.fire({
                 title: `Excluir pedido`,
@@ -381,291 +400,3 @@
         }
     </script>
 }
-@* @section Scripts {
-    <script>
-        $(document).ready(function () {
-            $('#tabelaPedidos').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
-                },
-                paging: true,
-                searching: true,
-                info: true,
-                ordering: true,
-                pageLength: 10,
-                lengthMenu: [5, 10, 25, 50, 100]
-            });
-        });
-        // Dados do backend
-        const carnes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Carnes));
-        const moedas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Moedas));
-        const pedidos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Pedidos));
-
-        let itensPedido = [];
-        let editandoId = null;
-
-        // Abrir modal para criar novo
-        function abrirModalCriar() {
-            document.getElementById('pedidoId').value = '';
-            document.getElementById('dataPedido').value = '';
-            document.getElementById('compradorId').selectedIndex = 0;
-            itensPedido = [];
-            renderizarItensPedido();
-            document.getElementById('tituloModalPedido').textContent = 'Novo Pedido';
-            document.getElementById('btnSalvarPedido').textContent = 'Salvar';
-            editandoId = null;
-            new bootstrap.Modal(document.getElementById('modalPedido')).show();
-        }
-
-        // Abrir modal para editar
-        function abrirModalEditar(id) {
-            const pedido = pedidos.find(p => p.Id == id);
-            if (!pedido) return;
-            document.getElementById('pedidoId').value = pedido.Id;
-            document.getElementById('dataPedido').value = pedido.Data.substring(0, 10);
-            document.getElementById('compradorId').value = pedido.CompradorId;
-            itensPedido = (pedido.Itens || []).map(item => ({
-                id: item.Id,
-                carneId: item.CarneId,
-                valor: item.Valor,
-                moedaId: item.MoedaId,
-                quantidade: item.Quantidade
-            }));
-            renderizarItensPedido();
-            document.getElementById('tituloModalPedido').textContent = 'Editar Pedido';
-            document.getElementById('btnSalvarPedido').textContent = 'Atualizar';
-            editandoId = id;
-            new bootstrap.Modal(document.getElementById('modalPedido')).show();
-        }
-
-        function adicionarItem() {
-            itensPedido.push({ id: 0, carneId: '', valor: '', moedaId: '', quantidade: 1 });
-            renderizarItensPedido();
-        }
-
-        function removerItem(idx) {
-            itensPedido.splice(idx, 1);
-            renderizarItensPedido();
-        }
-
-        function renderizarItensPedido() {
-            const div = document.getElementById('itensPedido');
-            div.innerHTML = '';
-            if (itensPedido.length === 0) {
-                div.innerHTML = '<div class="mb-3 text-muted">Nenhum item adicionado</div>';
-                return;
-            }
-            for (let i = 0; i < itensPedido.length; i++) {
-                let item = itensPedido[i];
-                let html = `
-                    <div class="row mb-2 align-items-end border rounded p-2" style="background:#fafafa;">
-                        <div class="col-md-4">
-                            <label class="form-label">Carne</label>
-                            <select class="form-select" onchange="itensPedido[${i}].carneId=this.value;">
-                                <option value="">Selecione...</option>
-                                ${carnes.map(c => `<option value="${c.Id}" ${item.carneId == c.Id ? 'selected' : ''}>${c.Nome}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Qtd</label>
-                            <input type="number" min="1" class="form-control" value="${item.quantidade || 1}"
-                                   oninput="itensPedido[${i}].quantidade=this.value;"/>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Preço</label>
-                            <input type="number" step="0.01" class="form-control" value="${item.valor || ''}"
-                                   oninput="itensPedido[${i}].valor=this.value;"/>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Moeda</label>
-                            <select class="form-select" onchange="itensPedido[${i}].moedaId=this.value;">
-                                <option value="">Selecione...</option>
-                                ${moedas.map(m => `<option value="${m.Id}" ${item.moedaId == m.Id ? 'selected' : ''}>${m.Nome} (${m.Sigla})</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="col-md-1 text-end">
-                            <button type="button" class="btn btn-link text-danger" onclick="removerItem(${i})"><i class="bi bi-x"></i></button>
-                        </div>
-                    </div>`;
-                div.innerHTML += html;
-            }
-        }
-
-        // Submissão do form (Create/Edit) COM SweetAlert2
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('formPedido').addEventListener('submit', function (e) {
-                e.preventDefault();
-                const id = document.getElementById('pedidoId').value;
-                const dto = {
-                    Id: id ? parseInt(id) : 0,
-                    Data: document.getElementById('dataPedido').value,
-                    CompradorId: parseInt(document.getElementById('compradorId').value),
-                    Total: 0, // Calculado no backend
-                    Itens: itensPedido.map(x => ({
-                        Id: x.id ? parseInt(x.id) : 0,
-                        PedidoId: id ? parseInt(id) : 0,
-                        CarneId: parseInt(x.carneId),
-                        Quantidade: parseInt(x.quantidade) || 1,
-                        MoedaId: parseInt(x.moedaId),
-                        Valor: parseFloat(x.valor) || 0
-                    }))
-                };
-                const url = id
-                    ? '@Url.Action("Edit", "Pedido")/' + id
-                    : '@Url.Action("Create", "Pedido")';
-                fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dto)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    Swal.fire({
-                        icon: data.success ? 'success' : 'error',
-                        title: data.success ? 'Sucesso' : 'Erro',
-                        text: data.message
-                    }).then(() => {
-                        if (data.success) location.reload();
-                    });
-                })
-                .catch(() => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Erro',
-                        text: 'Falha ao salvar pedido. Tente novamente.'
-                    });
-                });
-            });
-        });
-
-        // Exclusão com SweetAlert2
-        function excluirPedido(id) {
-            Swal.fire({
-                title: `Excluir pedido`,
-                text: `Tem certeza que deseja excluir o pedido #${id}?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sim, excluir',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/Pedido/Delete/${id}`, {
-                        method: 'POST'
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        Swal.fire({
-                            icon: data.success ? 'success' : 'error',
-                            title: data.success ? 'Sucesso' : 'Erro',
-                            text: data.message
-                        }).then(() => {
-                            if (data.success) location.reload();
-                        });
-                    })
-                    .catch(() => {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Erro',
-                            text: 'Falha ao excluir pedido. Tente novamente.'
-                        });
-                    });
-                }
-            });
-        }
-    </script>
-    <script>
-        // Função para buscar cotação da moeda na AwesomeAPI
-        async function buscarCotacaoParaBRL(moeda) {
-            if (moeda === 'BRL') return 1;
-            try {
-                const url = `https://economia.awesomeapi.com.br/json/last/${moeda}-BRL`;
-                const response = await fetch(url);
-                const data = await response.json();
-                const key = moeda + 'BRL';
-                if (data[key] && data[key].bid) {
-                    return parseFloat(data[key].bid);
-                }
-            } catch (e) {
-                console.error('Erro ao buscar cotação', moeda, e);
-            }
-            return null;
-        }
-
-        $(document).ready(async function () {
-            $('#tabelaPedidos').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
-                },
-                paging: true,
-                searching: true,
-                info: true,
-                ordering: true,
-                pageLength: 10,
-                lengthMenu: [5, 10, 25, 50, 100]
-            });
-
-            Swal.fire({
-                title: 'Convertendo valores...',
-                text: 'Buscando cotações em tempo real',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
-
-            // Map para guardar as cotações já buscadas
-            const cotacoes = { 'BRL': 1 };
-            // Busca moedas diferentes de BRL na lista de pedidos (lado server)
-            const moedasDiferentes = new Set();
-            @foreach (var pedido in Model.Pedidos ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.PedidoDTO>())
-            {
-                    foreach (var item in pedido.Itens ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.ItemPedidoDTO>())
-                    {
-                            if (item.Moeda != null && item.Moeda.Sigla != "BRL")
-                            {
-                                    <text>moedasDiferentes.add("@item.Moeda.Sigla");</text>
-                            }
-                    }
-            }
-            // Busca cotações em paralelo
-            await Promise.all(Array.from(moedasDiferentes).map(async sigla => {
-                cotacoes[sigla] = await buscarCotacaoParaBRL(sigla);
-            }));
-
-            // Percorre as linhas e ajusta os valores convertidos
-            $('#tabelaPedidos tbody tr').each(function () {
-                let $row = $(this);
-                let colItens = $row.find('td').eq(3);
-                let colTotal = $row.find('td').eq(4);
-                if (colItens.length === 0) return;
-                let itensHtml = colItens.html();
-                if (!itensHtml) return;
-
-                // Regex para extrair Nome - Valor e moeda, exemplo: "Bife - R$ 50,00 (USD)"
-                let regex = /([\w\s]+)\s*-\s*R\$?\s*([\d.,]+)(?:\s+\((\w+)\))?/gi;
-                let novoHtml = itensHtml.replace(regex, function (match, nome, valor, moeda) {
-                    valor = valor.replace(/\./g, '').replace(',', '.');
-                    let moedaSigla = moeda || 'BRL';
-                    let valorNum = parseFloat(valor);
-                    if (moedaSigla !== 'BRL' && cotacoes[moedaSigla]) {
-                        let convertido = valorNum * cotacoes[moedaSigla];
-                        let convertidoStr = convertido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        return `${nome} - R$ ${Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${moedaSigla})<br/><span class="text-success">Convertido ${convertidoStr}</span>`;
-                    }
-                    return match;
-                });
-                colItens.html(novoHtml);
-
-                // Ajusta o total (soma dos convertidos desta linha)
-                let matches = [...novoHtml.matchAll(/Convertido\sR\$[\s]?([\d.,]+)/g)];
-                if (matches.length > 0) {
-                    let totalConvertido = matches.reduce((acc, curr) => acc + parseFloat(curr[1].replace(/\./g, '').replace(',', '.')), 0);
-                    let totalConvertidoStr = totalConvertido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    colTotal.append(`<br/><span class="text-success fw-bold">Convertido ${totalConvertidoStr}</span>`);
-                }
-            });
-
-            Swal.close();
-        });
-    </script>
-} *@
-

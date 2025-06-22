@@ -1,14 +1,15 @@
 ﻿@model Cadastro.Carnes.WebUI.ViewModel.PedidoFormVm
 
-<!-- ... tabela de pedidos aqui ... -->
-<!-- Modal Novo Pedido -->
+<!-- Modal para criação e edição de pedido -->
 <div class="modal fade" id="modalPedido" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <form id="formPedido" class="modal-content">
+            <!-- Cabeçalho do modal com título e botão de fechar -->
             <div class="modal-header">
                 <h5 id="tituloModalPedido" class="modal-title">Novo Pedido</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <!-- Corpo do modal com campos para data do pedido e seleção do comprador -->
             <div class="modal-body">
                 <div class="row mb-3">
                     <div class="col">
@@ -27,9 +28,12 @@
                     </div>
                 </div>
                 <hr>
+                <!-- Área dinâmica onde os itens do pedido serão adicionados -->
                 <div id="itensPedidoArea"></div>
+                <!-- Botão para adicionar novos itens ao pedido -->
                 <button type="button" class="btn btn-light" onclick="adicionarItemPedido()">+ Adicionar Item</button>
             </div>
+            <!-- Rodapé do modal com botões para cancelar ou salvar -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" id="btnSalvarPedido" class="btn btn-primary">Salvar</button>
@@ -40,12 +44,18 @@
 
 @section Scripts {
     <script>
+        // Contador para identificar cada item do pedido
         let idxItem = 0;
+
+        // Função para adicionar um novo item ao pedido, opcionalmente preenchido com dados existentes
         function adicionarItemPedido(item = null) {
             idxItem++;
+
+            // Serializa os dados das carnes e moedas para uso no JavaScript
             const carnes = @Html.Raw(Json.Serialize(Model.Carnes));
             const moedas = @Html.Raw(Json.Serialize(Model.Moedas));
 
+            // Monta o HTML do item com campos para carne, preço e moeda, além do botão para remover
             let html = `<div class="row g-2 align-items-end mb-2" id="itemPedido_${idxItem}">
                 <div class="col-5">
                     <label class="form-label">Carne</label>
@@ -69,13 +79,17 @@
                     <button type="button" class="btn btn-link text-danger" onclick="removerItemPedido(${idxItem})">x</button>
                 </div>
             </div>`;
+
+            // Insere o novo item na área destinada a itens do pedido
             $('#itensPedidoArea').append(html);
         }
 
+        // Remove um item específico do pedido pelo seu índice
         function removerItemPedido(idx) {
             $('#itemPedido_' + idx).remove();
         }
 
+        // Abre o modal para criar um novo pedido, resetando os campos e adicionando um item vazio
         function abrirModalNovoPedido() {
             document.getElementById('dataPedido').value = '';
             document.getElementById('compradorId').value = '';
@@ -85,10 +99,11 @@
             new bootstrap.Modal(document.getElementById('modalPedido')).show();
         }
 
-        // Submissão do form
+        // Manipulador de submissão do formulário do pedido
         document.getElementById('formPedido').addEventListener('submit', function (e) {
             e.preventDefault();
-            // montar objeto DTO
+
+            // Monta a lista de itens do pedido lendo os campos dinamicamente adicionados
             const itens = [];
             $('#itensPedidoArea .row').each(function () {
                 const carneId = $(this).find('.carneItem').val();
@@ -103,11 +118,14 @@
                 }
             });
 
+            // Monta o objeto DTO com os dados do formulário para envio via API
             const dto = {
                 dataPedido: document.getElementById('dataPedido').value,
                 compradorId: parseInt(document.getElementById('compradorId').value),
                 itens: itens
             };
+
+            // Envia os dados para o endpoint Create via POST e recarrega a página após o envio
             fetch('@Url.Action("Create", "Pedido")', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
