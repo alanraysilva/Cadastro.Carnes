@@ -59,7 +59,7 @@ namespace Cadastro.Carnes.Application.Services
                 var possuiPedido = await _pedidoRepository.ExistePedidoComVendedor(id);
 
                 if (possuiPedido != null)
-                    return new RetornoPadraoDTO(false, "Não é possível excluir. Ciadde vinculada a comprador(s).");
+                    return new RetornoPadraoDTO(false, "Não é possível excluir. Pedidos vinculado ao comprador(s).");
 
                 var entity = _CompradorRepository.GetById(id).Result;
                 await _CompradorRepository.Delete(entity);

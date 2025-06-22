@@ -83,8 +83,6 @@
     </div>
 </div>
 
-@await Html.PartialAsync("_ConfirmarExclusao")
-
 @section Scripts {
     <script>
         $(function () {
@@ -123,6 +121,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formCarne').addEventListener('submit', function (e) {
                 e.preventDefault();
+
                 const id = document.getElementById('carneId').value;
                 const dto = {
                     id: id ? parseInt(id) : 0,
@@ -132,20 +131,64 @@
                 const url = id
                     ? '@Url.Action("Edit", "Carne")/' + id
                     : '@Url.Action("Create", "Carne")';
+
                 fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dto)
-                }).then(() => location.reload());
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Sucesso' : 'Erro',
+                        text: data.message
+                    }).then(() => {
+                        if (data.success) location.reload();
+                    });
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Falha ao salvar carne. Tente novamente.'
+                    });
+                });
             });
         });
-        
+
         function excluirCarne(id, nome) {
-            abrirModalExcluir(id, nome, function(idConfirmado) {
-                fetch(`/Carne/Delete/${idConfirmado}`, {
+            Swal.fire({
+                title: `Excluir Carne`,
+                text: `Tem certeza que deseja excluir "${nome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, excluir',
+                cancelButtonText: 'Cancelar'
+             }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Carne/Delete/${id}`, {
                     method: 'POST'
-                }).then(() => location.reload());
-            });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Sucesso' : 'Erro',
+                        text: data.message
+                    }).then(() => {
+                        if (data.success) location.reload();
+                        });
+                    })
+                    .catch(() => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Falha ao excluir cidade. Tente novamente.'
+                        });
+                     });
+                }
+             });
         }
     </script>
 }

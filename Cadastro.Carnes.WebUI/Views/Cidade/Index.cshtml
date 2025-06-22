@@ -86,8 +86,6 @@
     </div>
 </div>
 
-@await Html.PartialAsync("_ConfirmarExclusao")
-
 @section Scripts {
     <script>
         $(function () {
@@ -132,20 +130,64 @@
                 const url = id
                     ? '@Url.Action("Edit", "Cidade")/' + id
                     : '@Url.Action("Create", "Cidade")';
+
                 fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dto)
-                }).then(() => location.reload());
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Sucesso' : 'Erro',
+                        text: data.message
+                    }).then(() => {
+                        if (data.success) location.reload();
+                    });
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Falha ao salvar cidade. Tente novamente.'
+                    });
+                });
             });
         });
 
-        // Modal de exclusão genérico
+        // Modal de exclusão genérico com SweetAlert2
         function excluirCidade(id, nome) {
-            abrirModalExcluir(id, nome, function (idConfirmado) {
-                fetch(`/Cidade/Delete/${idConfirmado}`, {
-                    method: 'POST'
-                }).then(() => location.reload());
+            Swal.fire({
+                title: `Excluir cidade`,
+                text: `Tem certeza que deseja excluir "${nome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, excluir',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Cidade/Delete/${id}`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        Swal.fire({
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Sucesso' : 'Erro',
+                            text: data.message
+                        }).then(() => {
+                            if (data.success) location.reload();
+                        });
+                    })
+                    .catch(() => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Falha ao excluir cidade. Tente novamente.'
+                        });
+                    });
+                }
             });
         }
     </script>

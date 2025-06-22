@@ -31,7 +31,7 @@ namespace Cadastro.Carnes.Application.Services
                     new ItemPedido(i.PedidoId,i.CarneId, i.Quantidade, i.MoedaId, i.Valor)).ToList();
 
                 // Usa o construtor correto do domínio para garantir validação
-                var pedido = new Pedido(DateTime.Now, EnttiyDTO.CompradorId, itens);
+                var pedido = new Pedido(EnttiyDTO.Data, EnttiyDTO.CompradorId, itens);
 
                 await _PedidoRepository.Create(pedido);
 
@@ -95,7 +95,7 @@ namespace Cadastro.Carnes.Application.Services
                     new ItemPedido(i.PedidoId, i.CarneId, i.Quantidade, i.MoedaId, i.Valor)).ToList();
 
                 // Atualiza o domínio com segurança
-                entityBanco.Update(DateTime.Now, EnttiyDTO.CompradorId, novosItens);
+                entityBanco.Update(EnttiyDTO.Data, EnttiyDTO.CompradorId, novosItens);
 
                 await _PedidoRepository.Update(entityBanco);
 

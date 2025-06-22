@@ -54,7 +54,7 @@ namespace Cadastro.Carnes.Application.Services
                 var possuiComprador = await _CompradorRepository.ExisteCidadePorComprador(id);
 
                 if (possuiComprador != null)
-                    return new RetornoPadraoDTO(false, "Não é possível excluir. Ciadde vinculada a comprador(s).");
+                    return new RetornoPadraoDTO(false, "Não é possível excluir. Ciadade vinculada a comprador(es).");
 
                 var entity = _CidadeRepository.GetById(id).Result;
                 await _CidadeRepository.Delete(entity);

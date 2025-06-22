@@ -6,6 +6,6 @@ namespace Cadastro.Carnes.Domain.Interface
     {
         Task<bool> DeletaItemPorNumeroDoPedido(int? pedidoId);
         Task<ItemPedido> ExisteItemComEssaMoeda(int? moedaId);
-        Task<ItemPedido> ExistePorCarneIdAsync(int? carneId);
+        Task<List<ItemPedido>> ExistePorCarneIdAsync(int? carneId);
     }
 }

@@ -106,9 +106,6 @@
         </form>
     </div>
 </div>
-
-@await Html.PartialAsync("_ConfirmarExclusao")
-
 @section Scripts {
     <script>
         // Dados do backend
@@ -119,7 +116,103 @@
         let itensPedido = [];
         let editandoId = null;
 
-        // Abrir modal para criar novo
+        // --- Função para buscar cotação da moeda na AwesomeAPI ---
+        async function buscarCotacaoParaBRL(moeda) {
+            if (moeda === 'BRL') return 1;
+            try {
+                const url = `https://economia.awesomeapi.com.br/json/last/${moeda}-BRL`;
+                const response = await fetch(url);
+                const data = await response.json();
+                const key = moeda + 'BRL';
+                if (data[key] && data[key].bid) {
+                    return parseFloat(data[key].bid);
+                }
+            } catch (e) {
+                console.error('Erro ao buscar cotação', moeda, e);
+            }
+            return null;
+        }
+
+        // --- Carregar e converter cotações antes de inicializar DataTable ---
+        $(document).ready(async function () {
+            // Mostra loading do SweetAlert2
+            Swal.fire({
+                title: 'Convertendo valores...',
+                text: 'Buscando cotações em tempo real',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // Monta map de cotações (BRL = 1)
+            const cotacoes = { 'BRL': 1 };
+            const moedasDiferentes = new Set();
+            @foreach (var pedido in Model.Pedidos ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.PedidoDTO>())
+            {
+                    foreach (var item in pedido.Itens ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.ItemPedidoDTO>())
+                    {
+                            if (item.Moeda != null && item.Moeda.Sigla != "BRL")
+                            {
+                                    <text>moedasDiferentes.add("@item.Moeda.Sigla");</text>
+                            }
+                    }
+            }
+
+            // Busca cotações em paralelo
+            await Promise.all(Array.from(moedasDiferentes).map(async sigla => {
+                cotacoes[sigla] = await buscarCotacaoParaBRL(sigla);
+            }));
+
+            // Altera HTML da tabela antes do DataTable
+            $('#tabelaPedidos tbody tr').each(function () {
+                let $row = $(this);
+                let colItens = $row.find('td').eq(3);
+                let colTotal = $row.find('td').eq(4);
+                if (colItens.length === 0) return;
+                let itensHtml = colItens.html();
+                if (!itensHtml) return;
+
+                // Regex para extrair Nome - Valor e moeda
+                let regex = /([\w\s]+)\s*-\s*R\$?\s*([\d.,]+)(?:\s+\((\w+)\))?/gi;
+                let novoHtml = itensHtml.replace(regex, function (match, nome, valor, moeda) {
+                    valor = valor.replace(/\./g, '').replace(',', '.');
+                    let moedaSigla = moeda || 'BRL';
+                    let valorNum = parseFloat(valor);
+                    if (moedaSigla !== 'BRL' && cotacoes[moedaSigla]) {
+                        let convertido = valorNum * cotacoes[moedaSigla];
+                        let convertidoStr = convertido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        return `${nome} - R$ ${Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${moedaSigla})<br/><span class="text-success">Convertido ${convertidoStr}</span>`;
+                    }
+                    return match;
+                });
+                colItens.html(novoHtml);
+
+                // Ajusta o total (soma dos convertidos desta linha)
+                let matches = [...novoHtml.matchAll(/Convertido\sR\$[\s]?([\d.,]+)/g)];
+                if (matches.length > 0) {
+                    let totalConvertido = matches.reduce((acc, curr) => acc + parseFloat(curr[1].replace(/\./g, '').replace(',', '.')), 0);
+                    let totalConvertidoStr = totalConvertido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    colTotal.append(`<br/><span class="text-success fw-bold">Convertido ${totalConvertidoStr}</span>`);
+                }
+            });
+
+            Swal.close();
+
+            // --- Inicializa o DataTable UMA SÓ VEZ ---
+            $('#tabelaPedidos').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
+                },
+                paging: true,
+                searching: true,
+                info: true,
+                ordering: true,
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100]
+            });
+        });
+
+        // --- Funções de modal e form continuam igual ---
         function abrirModalCriar() {
             document.getElementById('pedidoId').value = '';
             document.getElementById('dataPedido').value = '';
@@ -132,12 +225,11 @@
             new bootstrap.Modal(document.getElementById('modalPedido')).show();
         }
 
-        // Abrir modal para editar
         function abrirModalEditar(id) {
             const pedido = pedidos.find(p => p.Id == id);
             if (!pedido) return;
             document.getElementById('pedidoId').value = pedido.Id;
-            document.getElementById('dataPedido').value = pedido.Data.substring(0,10);
+            document.getElementById('dataPedido').value = pedido.Data.substring(0, 10);
             document.getElementById('compradorId').value = pedido.CompradorId;
             itensPedido = (pedido.Itens || []).map(item => ({
                 id: item.Id,
@@ -206,7 +298,200 @@
             }
         }
 
-        // Salvar (Create ou Edit)
+        // Submissão do form (Create/Edit) COM SweetAlert2
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('formPedido').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const id = document.getElementById('pedidoId').value;
+                const dto = {
+                    Id: id ? parseInt(id) : 0,
+                    Data: document.getElementById('dataPedido').value,
+                    CompradorId: parseInt(document.getElementById('compradorId').value),
+                    Total: 0,
+                    Itens: itensPedido.map(x => ({
+                        Id: x.id ? parseInt(x.id) : 0,
+                        PedidoId: id ? parseInt(id) : 0,
+                        CarneId: parseInt(x.carneId),
+                        Quantidade: parseInt(x.quantidade) || 1,
+                        MoedaId: parseInt(x.moedaId),
+                        Valor: parseFloat(x.valor) || 0
+                    }))
+                };
+                const url = id
+                    ? '@Url.Action("Edit", "Pedido")/' + id
+                    : '@Url.Action("Create", "Pedido")';
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dto)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Sucesso' : 'Erro',
+                        text: data.message
+                    }).then(() => {
+                        if (data.success) location.reload();
+                    });
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Falha ao salvar pedido. Tente novamente.'
+                    });
+                });
+            });
+        });
+
+        // Exclusão com SweetAlert2
+        function excluirPedido(id) {
+            Swal.fire({
+                title: `Excluir pedido`,
+                text: `Tem certeza que deseja excluir o pedido #${id}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, excluir',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Pedido/Delete/${id}`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        Swal.fire({
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Sucesso' : 'Erro',
+                            text: data.message
+                        }).then(() => {
+                            if (data.success) location.reload();
+                        });
+                    })
+                    .catch(() => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Falha ao excluir pedido. Tente novamente.'
+                        });
+                    });
+                }
+            });
+        }
+    </script>
+}
+@* @section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#tabelaPedidos').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
+                },
+                paging: true,
+                searching: true,
+                info: true,
+                ordering: true,
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100]
+            });
+        });
+        // Dados do backend
+        const carnes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Carnes));
+        const moedas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Moedas));
+        const pedidos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Pedidos));
+
+        let itensPedido = [];
+        let editandoId = null;
+
+        // Abrir modal para criar novo
+        function abrirModalCriar() {
+            document.getElementById('pedidoId').value = '';
+            document.getElementById('dataPedido').value = '';
+            document.getElementById('compradorId').selectedIndex = 0;
+            itensPedido = [];
+            renderizarItensPedido();
+            document.getElementById('tituloModalPedido').textContent = 'Novo Pedido';
+            document.getElementById('btnSalvarPedido').textContent = 'Salvar';
+            editandoId = null;
+            new bootstrap.Modal(document.getElementById('modalPedido')).show();
+        }
+
+        // Abrir modal para editar
+        function abrirModalEditar(id) {
+            const pedido = pedidos.find(p => p.Id == id);
+            if (!pedido) return;
+            document.getElementById('pedidoId').value = pedido.Id;
+            document.getElementById('dataPedido').value = pedido.Data.substring(0, 10);
+            document.getElementById('compradorId').value = pedido.CompradorId;
+            itensPedido = (pedido.Itens || []).map(item => ({
+                id: item.Id,
+                carneId: item.CarneId,
+                valor: item.Valor,
+                moedaId: item.MoedaId,
+                quantidade: item.Quantidade
+            }));
+            renderizarItensPedido();
+            document.getElementById('tituloModalPedido').textContent = 'Editar Pedido';
+            document.getElementById('btnSalvarPedido').textContent = 'Atualizar';
+            editandoId = id;
+            new bootstrap.Modal(document.getElementById('modalPedido')).show();
+        }
+
+        function adicionarItem() {
+            itensPedido.push({ id: 0, carneId: '', valor: '', moedaId: '', quantidade: 1 });
+            renderizarItensPedido();
+        }
+
+        function removerItem(idx) {
+            itensPedido.splice(idx, 1);
+            renderizarItensPedido();
+        }
+
+        function renderizarItensPedido() {
+            const div = document.getElementById('itensPedido');
+            div.innerHTML = '';
+            if (itensPedido.length === 0) {
+                div.innerHTML = '<div class="mb-3 text-muted">Nenhum item adicionado</div>';
+                return;
+            }
+            for (let i = 0; i < itensPedido.length; i++) {
+                let item = itensPedido[i];
+                let html = `
+                    <div class="row mb-2 align-items-end border rounded p-2" style="background:#fafafa;">
+                        <div class="col-md-4">
+                            <label class="form-label">Carne</label>
+                            <select class="form-select" onchange="itensPedido[${i}].carneId=this.value;">
+                                <option value="">Selecione...</option>
+                                ${carnes.map(c => `<option value="${c.Id}" ${item.carneId == c.Id ? 'selected' : ''}>${c.Nome}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Qtd</label>
+                            <input type="number" min="1" class="form-control" value="${item.quantidade || 1}"
+                                   oninput="itensPedido[${i}].quantidade=this.value;"/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Preço</label>
+                            <input type="number" step="0.01" class="form-control" value="${item.valor || ''}"
+                                   oninput="itensPedido[${i}].valor=this.value;"/>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Moeda</label>
+                            <select class="form-select" onchange="itensPedido[${i}].moedaId=this.value;">
+                                <option value="">Selecione...</option>
+                                ${moedas.map(m => `<option value="${m.Id}" ${item.moedaId == m.Id ? 'selected' : ''}>${m.Nome} (${m.Sigla})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <button type="button" class="btn btn-link text-danger" onclick="removerItem(${i})"><i class="bi bi-x"></i></button>
+                        </div>
+                    </div>`;
+                div.innerHTML += html;
+            }
+        }
+
+        // Submissão do form (Create/Edit) COM SweetAlert2
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formPedido').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -232,17 +517,155 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dto)
-                }).then(() => location.reload());
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Sucesso' : 'Erro',
+                        text: data.message
+                    }).then(() => {
+                        if (data.success) location.reload();
+                    });
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Falha ao salvar pedido. Tente novamente.'
+                    });
+                });
             });
         });
 
-        // Modal genérico de exclusão
+        // Exclusão com SweetAlert2
         function excluirPedido(id) {
-            abrirModalExcluir(id, "Pedido #" + id, function(idConfirmado) {
-                fetch(`/Pedido/Delete/${idConfirmado}`, {
-                    method: 'POST'
-                }).then(() => location.reload());
+            Swal.fire({
+                title: `Excluir pedido`,
+                text: `Tem certeza que deseja excluir o pedido #${id}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, excluir',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Pedido/Delete/${id}`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        Swal.fire({
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Sucesso' : 'Erro',
+                            text: data.message
+                        }).then(() => {
+                            if (data.success) location.reload();
+                        });
+                    })
+                    .catch(() => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Falha ao excluir pedido. Tente novamente.'
+                        });
+                    });
+                }
             });
         }
     </script>
-}
+    <script>
+        // Função para buscar cotação da moeda na AwesomeAPI
+        async function buscarCotacaoParaBRL(moeda) {
+            if (moeda === 'BRL') return 1;
+            try {
+                const url = `https://economia.awesomeapi.com.br/json/last/${moeda}-BRL`;
+                const response = await fetch(url);
+                const data = await response.json();
+                const key = moeda + 'BRL';
+                if (data[key] && data[key].bid) {
+                    return parseFloat(data[key].bid);
+                }
+            } catch (e) {
+                console.error('Erro ao buscar cotação', moeda, e);
+            }
+            return null;
+        }
+
+        $(document).ready(async function () {
+            $('#tabelaPedidos').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
+                },
+                paging: true,
+                searching: true,
+                info: true,
+                ordering: true,
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100]
+            });
+
+            Swal.fire({
+                title: 'Convertendo valores...',
+                text: 'Buscando cotações em tempo real',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // Map para guardar as cotações já buscadas
+            const cotacoes = { 'BRL': 1 };
+            // Busca moedas diferentes de BRL na lista de pedidos (lado server)
+            const moedasDiferentes = new Set();
+            @foreach (var pedido in Model.Pedidos ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.PedidoDTO>())
+            {
+                    foreach (var item in pedido.Itens ?? Enumerable.Empty<Cadastro.Carnes.Application.DTOs.ItemPedidoDTO>())
+                    {
+                            if (item.Moeda != null && item.Moeda.Sigla != "BRL")
+                            {
+                                    <text>moedasDiferentes.add("@item.Moeda.Sigla");</text>
+                            }
+                    }
+            }
+            // Busca cotações em paralelo
+            await Promise.all(Array.from(moedasDiferentes).map(async sigla => {
+                cotacoes[sigla] = await buscarCotacaoParaBRL(sigla);
+            }));
+
+            // Percorre as linhas e ajusta os valores convertidos
+            $('#tabelaPedidos tbody tr').each(function () {
+                let $row = $(this);
+                let colItens = $row.find('td').eq(3);
+                let colTotal = $row.find('td').eq(4);
+                if (colItens.length === 0) return;
+                let itensHtml = colItens.html();
+                if (!itensHtml) return;
+
+                // Regex para extrair Nome - Valor e moeda, exemplo: "Bife - R$ 50,00 (USD)"
+                let regex = /([\w\s]+)\s*-\s*R\$?\s*([\d.,]+)(?:\s+\((\w+)\))?/gi;
+                let novoHtml = itensHtml.replace(regex, function (match, nome, valor, moeda) {
+                    valor = valor.replace(/\./g, '').replace(',', '.');
+                    let moedaSigla = moeda || 'BRL';
+                    let valorNum = parseFloat(valor);
+                    if (moedaSigla !== 'BRL' && cotacoes[moedaSigla]) {
+                        let convertido = valorNum * cotacoes[moedaSigla];
+                        let convertidoStr = convertido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        return `${nome} - R$ ${Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${moedaSigla})<br/><span class="text-success">Convertido ${convertidoStr}</span>`;
+                    }
+                    return match;
+                });
+                colItens.html(novoHtml);
+
+                // Ajusta o total (soma dos convertidos desta linha)
+                let matches = [...novoHtml.matchAll(/Convertido\sR\$[\s]?([\d.,]+)/g)];
+                if (matches.length > 0) {
+                    let totalConvertido = matches.reduce((acc, curr) => acc + parseFloat(curr[1].replace(/\./g, '').replace(',', '.')), 0);
+                    let totalConvertidoStr = totalConvertido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    colTotal.append(`<br/><span class="text-success fw-bold">Convertido ${totalConvertidoStr}</span>`);
+                }
+            });
+
+            Swal.close();
+        });
+    </script>
+} *@
+

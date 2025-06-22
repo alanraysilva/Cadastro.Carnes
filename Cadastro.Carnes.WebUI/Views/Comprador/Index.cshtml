@@ -96,8 +96,6 @@
     </div>
 </div>
 
-@await Html.PartialAsync("_ConfirmarExclusao")
-
 @section Scripts {
     <script>
         $(function () {
@@ -114,10 +112,8 @@
         function formatarDocumento(doc) {
             doc = doc.replace(/\D/g, '');
             if (doc.length <= 11) {
-                // CPF: 000.000.000-00
                 return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
             } else {
-                // CNPJ: 00.000.000/0000-00
                 return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
             }
         }
@@ -142,7 +138,7 @@
             new bootstrap.Modal(document.getElementById('modalComprador')).show();
         }
 
-        // Submissão do form (create/update)
+        // Submissão do form (create/update) COM SweetAlert2
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('formComprador').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -156,19 +152,64 @@
                 const url = id
                     ? '@Url.Action("Edit", "Comprador")/' + id
                     : '@Url.Action("Create", "Comprador")';
+
                 fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dto)
-                }).then(() => location.reload());
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Sucesso' : 'Erro',
+                        text: data.message
+                    }).then(() => {
+                        if (data.success) location.reload();
+                    });
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Falha ao salvar comprador. Tente novamente.'
+                    });
+                });
             });
         });
 
+        // Exclusão com confirmação e feedback
         function excluirComprador(id, nome) {
-            abrirModalExcluir(id, nome, function(idConfirmado) {
-                fetch(`/Comprador/Delete/${idConfirmado}`, {
-                    method: 'POST'
-                }).then(() => location.reload());
+            Swal.fire({
+                title: `Excluir comprador`,
+                text: `Tem certeza que deseja excluir "${nome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, excluir',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Comprador/Delete/${id}`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        Swal.fire({
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Sucesso' : 'Erro',
+                            text: data.message
+                        }).then(() => {
+                            if (data.success) location.reload();
+                        });
+                    })
+                    .catch(() => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Falha ao excluir comprador. Tente novamente.'
+                        });
+                    });
+                }
             });
         }
     </script>

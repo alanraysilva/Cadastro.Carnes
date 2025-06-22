@@ -59,9 +59,9 @@ namespace Cadastro.Carnes.Infra.Data.Repositories
             return x!;
         }
 
-        public async Task<ItemPedido> ExistePorCarneIdAsync(int? carneId)
+        public async Task<List<ItemPedido>> ExistePorCarneIdAsync(int? carneId)
         {
-            var x = await _context.ItemPedido.SingleOrDefaultAsync(p => p.CarneId == carneId);
+            var x = await _context.ItemPedido.Where(p => p.CarneId == carneId).ToListAsync();
             return x!;
         }
 
