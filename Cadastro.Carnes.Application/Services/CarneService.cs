@@ -81,7 +81,7 @@ namespace Cadastro.Carnes.Application.Services
                 // Checa se existe item de pedido vinculado à carne antes de excluir
                 var possuiPedidos = await _itemPedidoRepository.ExistePorCarneIdAsync(id);
 
-                if (possuiPedidos != null)
+                if (possuiPedidos?.Count > 0)
                     return new RetornoPadraoDTO(false, "Não é possível excluir. Carne vinculada a pedidos.");
 
                 var entity = _carneRepository.GetById(id).Result;
