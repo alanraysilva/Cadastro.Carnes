@@ -9,7 +9,7 @@ namespace Cadastro.Carnes.WebUI.Controllers
 {
     public class CompradorController : Controller
     {
-        // HttpClient configurado para chamar a API
+        // HttpClient configurado para chamar a API.
         private readonly HttpClient _http;
 
         // Injeta HttpClient no construtor

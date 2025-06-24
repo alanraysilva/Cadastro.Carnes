@@ -8,7 +8,7 @@ namespace Cadastro.Carnes.WebUI.Controllers
 {
     public class CarneController : Controller
     {
-        // HttpClient para chamadas à API (injeção de dependência)
+        // HttpClient para chamadas à API (injeção de dependência).
         private readonly HttpClient _http;
 
         // Construtor recebe o HttpClient já configurado para a API

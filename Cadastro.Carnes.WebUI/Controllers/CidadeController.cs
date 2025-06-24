@@ -8,7 +8,7 @@ namespace Cadastro.Carnes.WebUI.Controllers
 {
     public class CidadeController : Controller
     {
-        // HttpClient usado para fazer chamadas à API
+        // HttpClient usado para fazer chamadas à API.
         private readonly HttpClient _http;
 
         // O HttpClient é injetado no construtor, já configurado com o endpoint da API

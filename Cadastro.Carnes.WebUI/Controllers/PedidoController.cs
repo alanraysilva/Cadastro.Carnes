@@ -9,7 +9,7 @@ public class PedidoController : Controller
 {
     private readonly HttpClient _http;
 
-    // Recebe o HttpClient configurado para a API
+    // Recebe o HttpClient configurado para a API.
     public PedidoController(IHttpClientFactory factory)
     {
         _http = factory.CreateClient("API");

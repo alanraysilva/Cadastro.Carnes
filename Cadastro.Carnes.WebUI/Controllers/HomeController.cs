@@ -7,7 +7,7 @@ namespace Cadastro.Carnes.WebUI.Controllers
 {
     public class HomeController : Controller
     {
-        // Factory para criar HttpClient configurado para API
+        // Factory para criar HttpClient configurado para API.
         private readonly IHttpClientFactory _httpClientFactory;
 
         // Injeta o factory no construtor

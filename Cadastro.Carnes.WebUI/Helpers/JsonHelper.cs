@@ -9,7 +9,7 @@ namespace Cadastro.Carnes.WebUI.Helpers
         {
             try
             {
-                // Tenta desserializar o JSON para o objeto Resposta
+                // Tenta desserializar o JSON para o objeto Resposta.
                 var errorObj = JsonSerializer.Deserialize<Resposta>(json);
 
                 // Retorna a mensagem contida no objeto ou mensagem padrão caso seja nula
